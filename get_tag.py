@@ -1,4 +1,5 @@
 import argparse
+import http.client
 import json
 import re
 import subprocess
@@ -10,7 +11,7 @@ _RETRIES = 3
 _RE_PIP_VERSIONS_1 = re.compile(r"\(from versions: (.*)\)")
 
 
-def _urlopen(url: str, __retries: int = _RETRIES) -> urllib.request.Response:
+def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
     if _RETRIES == __retries:
         print(f"{url=}", file=sys.stderr)
     try:
