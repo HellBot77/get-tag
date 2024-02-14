@@ -2,9 +2,28 @@ import argparse
 import json
 import re
 import subprocess
+import sys
+import time
 import urllib.request
 
+_RETRIES = 3
 _RE_PIP_VERSIONS_1 = re.compile(r"\(from versions: (.*)\)")
+
+
+def _urlopen(url: str, __retries: int = _RETRIES) -> urllib.request.Response:
+    if _RETRIES == __retries:
+        print(f"{url=}", file=sys.stderr)
+    try:
+        response = urllib.request.urlopen(url)
+        assert 200 == response.status
+        return response
+    except BaseException:
+        if __retries:
+            sleep = 30 * (_RETRIES - __retries + 1)
+            print(f"{sleep=}", file=sys.stderr)
+            time.sleep(sleep)
+            return _urlopen(url, __retries - 1)
+        raise
 
 
 def get_pip_versions_1(package: str) -> list[str]:
@@ -15,8 +34,7 @@ def get_pip_versions_1(package: str) -> list[str]:
 
 def get_pip_versions_2(package: str) -> list[str]:
     url = f"https://pypi.org/pypi/{package}/json"
-    response = urllib.request.urlopen(url)
-    assert 200 == response.status
+    response = _urlopen(url)
     return list(json.loads(response.read())["releases"])
 
 
@@ -28,7 +46,7 @@ def get_pip_versions_3(package: str) -> list[str]:
 
 
 def get_pip_versions(package: str) -> list[str]:
-    return get_pip_versions_1(package)
+    return get_pip_versions_2(package)
 
 
 def get_pip_version_1(package: str) -> str:
@@ -53,7 +71,7 @@ def get_pip_version_4(package: str) -> str:
 
 
 def get_pip_version(package: str) -> str:
-    return get_pip_version_1(package)
+    return get_pip_version_2(package)
 
 
 def get_go_versions(module: str) -> list[str]:
@@ -74,8 +92,7 @@ def get_gh_commit_versions(repository: str) -> list[str]:
         repository += "?"
     repository, branch = repository.split("?", 1)
     url = f"https://api.github.com/repos/{repository}/commits?sha={branch}"
-    response = urllib.request.urlopen(url)
-    assert 200 == response.status
+    response = _urlopen(url)
     return [result["sha"] for result in json.loads(response.read())][::-1]
 
 
@@ -85,8 +102,7 @@ def get_gh_commit_version(repository: str) -> str:
 
 def get_gh_release_versions(repository: str) -> list[str]:
     url = f"https://api.github.com/repos/{repository}/tags"
-    response = urllib.request.urlopen(url)
-    assert 200 == response.status
+    response = _urlopen(url)
     return [result["name"] for result in json.loads(response.read())][::-1]
 
 
@@ -96,8 +112,7 @@ def get_gh_release_version(repository: str) -> str:
 
 def get_docker_versions(repository: str) -> list[str]:
     url = f"https://hub.docker.com/v2/repositories/{repository}/tags"
-    response = urllib.request.urlopen(url)
-    assert 200 == response.status
+    response = _urlopen(url)
     return [result["name"] for result in json.loads(response.read())["results"]]
 
 
@@ -120,7 +135,7 @@ def main():
     elif args.gh_release:
         tag = get_gh_release_version(args.gh_release)
     else:
-        raise ValueError()
+        raise NotImplementedError
     if tag not in deployed:
         print(f"tag={tag}")
 
