@@ -101,14 +101,14 @@ def get_gh_commit_version(repository: str) -> str:
     return get_gh_commit_versions(repository)[-1]
 
 
-def get_gh_release_versions(repository: str) -> list[str]:
+def get_gh_tags_versions(repository: str) -> list[str]:
     url = f"https://api.github.com/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in json.loads(response.read())][::-1]
 
 
-def get_gh_release_version(repository: str) -> str:
-    return get_gh_release_versions(repository)[-1]
+def get_gh_tag_version(repository: str) -> str:
+    return get_gh_tags_versions(repository)[-1]
 
 
 def get_docker_versions(repository: str) -> list[str]:
@@ -124,7 +124,7 @@ def main():
     group.add_argument("--pip")
     group.add_argument("--go")
     group.add_argument("--gh-commit", "--git-commit")
-    group.add_argument("--gh-release", "--git-release")
+    group.add_argument("--gh-tag", "--git-release")
     args = parser.parse_args()
     deployed = get_docker_versions(args.repository)
     if args.pip:
@@ -133,8 +133,8 @@ def main():
         tag = get_go_version(args.go)
     elif args.gh_commit:
         tag = get_gh_commit_version(args.gh_commit)
-    elif args.gh_release:
-        tag = get_gh_release_version(args.gh_release)
+    elif args.gh_tag:
+        tag = get_gh_tag_version(args.gh_tag)
     else:
         raise NotImplementedError
     if tag not in deployed:
