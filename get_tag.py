@@ -47,7 +47,7 @@ def get_pip_versions_3(package: str) -> list[str]:
 
 
 def get_pip_versions(package: str) -> list[str]:
-    return get_pip_versions_2(package)
+    return get_pip_versions_1(package)
 
 
 def get_pip_version_1(package: str) -> str:
@@ -72,7 +72,7 @@ def get_pip_version_4(package: str) -> str:
 
 
 def get_pip_version(package: str) -> str:
-    return get_pip_version_2(package)
+    return get_pip_version_1(package)
 
 
 def get_go_versions(module: str) -> list[str]:
