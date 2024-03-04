@@ -8,7 +8,6 @@ import time
 import urllib.request
 
 _RETRIES = 3
-_RE_PIP_VERSIONS_1 = re.compile(r"\(from versions: (.*)\)")
 
 
 def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
@@ -29,14 +28,18 @@ def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
 
 def get_pip_versions_1(package: str) -> list[str]:
     process = subprocess.run(["pip", "install", f"{package}=="], capture_output=True)
-    if match := _RE_PIP_VERSIONS_1.search(process.stderr.decode()):
-        return match.group(1).split(", ")
+    match = re.search(r"\(from versions: (.*)\)", process.stderr.decode())
+    assert match
+    return match.group(1).split(", ")
 
 
 def get_pip_versions_2(package: str) -> list[str]:
     url = f"https://pypi.org/pypi/{package}/json"
     response = _urlopen(url)
-    return list(json.loads(response.read())["releases"])
+    releases = json.loads(response.read())["releases"]
+    return sorted(
+        releases, key=lambda release: releases[release][0]["upload_time_iso_8601"]
+    )
 
 
 def get_pip_versions_3(package: str) -> list[str]:
@@ -47,7 +50,7 @@ def get_pip_versions_3(package: str) -> list[str]:
 
 
 def get_pip_versions(package: str) -> list[str]:
-    return get_pip_versions_1(package)
+    return get_pip_versions_2(package)
 
 
 def get_pip_version_1(package: str) -> str:
@@ -68,11 +71,11 @@ def get_pip_version_4(package: str) -> str:
     for frozen in process.stdout.decode().splitlines():
         if frozen.startswith(f"{package}=="):
             return frozen[11:]
-    raise ModuleNotFoundError()
+    raise AssertionError
 
 
 def get_pip_version(package: str) -> str:
-    return get_pip_version_1(package)
+    return get_pip_version_2(package)
 
 
 def get_go_versions(module: str) -> list[str]:
@@ -88,13 +91,17 @@ def get_go_version(module: str) -> str:
     return get_go_versions(module)[-1]
 
 
+def _get_repository_branch(repository: str) -> tuple[str, str]:
+    if "#" not in repository:
+        repository += "#"
+    return tuple(repository.split("#", 1))  # type: ignore[return-value]
+
+
 def get_gh_commit_versions(repository: str) -> list[str]:
-    if "?" not in repository:
-        repository += "?"
-    repository, branch = repository.split("?", 1)
+    repository, branch = _get_repository_branch(repository)
     url = f"https://api.github.com/repos/{repository}/commits?sha={branch}"
     response = _urlopen(url)
-    return [result["sha"] for result in json.loads(response.read())][::-1]
+    return [result["sha"] for result in reversed(json.loads(response.read()))]
 
 
 def get_gh_commit_version(repository: str) -> str:
@@ -104,7 +111,7 @@ def get_gh_commit_version(repository: str) -> str:
 def get_gh_tags_versions(repository: str) -> list[str]:
     url = f"https://api.github.com/repos/{repository}/tags"
     response = _urlopen(url)
-    return [result["name"] for result in json.loads(response.read())][::-1]
+    return [result["name"] for result in reversed(json.loads(response.read()))]
 
 
 def get_gh_tag_version(repository: str) -> str:
@@ -114,11 +121,31 @@ def get_gh_tag_version(repository: str) -> str:
 def get_gh_release_versions(repository: str) -> list[str]:
     url = f"https://api.github.com/repos/{repository}/releases"
     response = _urlopen(url)
-    return [result["tag_name"] for result in json.loads(response.read())][::-1]
+    return [result["tag_name"] for result in reversed(json.loads(response.read()))]
 
 
 def get_gh_release_version(repository: str) -> str:
     return get_gh_release_versions(repository)[-1]
+
+
+def _get_gl_repository(repository: str) -> int:
+    if repository.isdigit():
+        return int(repository)
+    else:
+        url = f"https://gitlab.com/api/v4/projects/{repository.replace('/', '%2F', 1)}"
+        response = _urlopen(url)
+        return json.loads(response.read())["id"]
+
+
+def get_gl_commit_versions(repository: str) -> list[str]:
+    repository, branch = _get_repository_branch(repository)
+    url = f"https://gitlab.com/api/v4/projects/{_get_gl_repository(repository)}/repository/commits?ref_name={branch}"
+    response = _urlopen(url)
+    return [result["id"] for result in reversed(json.loads(response.read()))]
+
+
+def get_gl_commit_version(repository: str) -> str:
+    return get_gl_commit_versions(repository)[-1]
 
 
 def get_docker_versions(repository: str) -> list[str]:
@@ -129,15 +156,16 @@ def get_docker_versions(repository: str) -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("repository")
+    parser.add_argument("docker")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pip")
     group.add_argument("--go")
     group.add_argument("--gh-commit", "--git-commit")
     group.add_argument("--gh-tag", "--git-release")
     group.add_argument("--gh-release")
+    group.add_argument("--gl-commit")
     args = parser.parse_args()
-    deployed = get_docker_versions(args.repository)
+    tags = get_docker_versions(args.docker)
     if args.pip:
         tag = get_pip_version(args.pip)
     elif args.go:
@@ -148,9 +176,11 @@ def main():
         tag = get_gh_tag_version(args.gh_tag)
     elif args.gh_release:
         tag = get_gh_release_version(args.gh_release)
+    elif args.gl_commit:
+        tag = get_gl_commit_version(args.gl_commit)
     else:
         raise NotImplementedError
-    if tag not in deployed:
+    if tag not in tags:
         print(f"tag={tag}")
 
 
