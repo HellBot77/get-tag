@@ -93,13 +93,20 @@ def get_go_version(module: str) -> str:
 
 def _get_repository_branch(repository: str) -> tuple[str, str]:
     if "#" not in repository:
-        repository += "#"
-    return tuple(repository.split("#", 1))  # type: ignore[return-value]
+        repository += ":"
+    return tuple(repository.split(":", 1))  # type: ignore[return-value]
+
+
+def _get_gh_repository_base_url(repository: str) -> tuple[str, str]:
+    if "@" not in repository:
+        repository += "@https://api.github.com"
+    return tuple(repository.split("@", 1))  # type: ignore[return-value]
 
 
 def get_gh_commit_versions(repository: str) -> list[str]:
+    repository, base_url = _get_gh_repository_base_url(repository)
     repository, branch = _get_repository_branch(repository)
-    url = f"https://api.github.com/repos/{repository}/commits?sha={branch}"
+    url = f"{base_url}/repos/{repository}/commits?sha={branch}"
     response = _urlopen(url)
     return [result["sha"] for result in reversed(json.loads(response.read()))]
 
@@ -109,7 +116,8 @@ def get_gh_commit_version(repository: str) -> str:
 
 
 def get_gh_tags_versions(repository: str) -> list[str]:
-    url = f"https://api.github.com/repos/{repository}/tags"
+    repository, base_url = _get_gh_repository_base_url(repository)
+    url = f"{base_url}/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
 
@@ -119,7 +127,8 @@ def get_gh_tag_version(repository: str) -> str:
 
 
 def get_gh_release_versions(repository: str) -> list[str]:
-    url = f"https://api.github.com/repos/{repository}/releases"
+    repository, base_url = _get_gh_repository_base_url(repository)
+    url = f"{base_url}/repos/{repository}/releases"
     response = _urlopen(url)
     return [result["tag_name"] for result in reversed(json.loads(response.read()))]
 
