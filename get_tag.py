@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import http.client
 import json
@@ -169,8 +171,8 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pip")
     group.add_argument("--go")
-    group.add_argument("--gh-commit", "--git-commit")
-    group.add_argument("--gh-tag", "--git-release")
+    group.add_argument("--gh-commit")
+    group.add_argument("--gh-tag")
     group.add_argument("--gh-release")
     group.add_argument("--gl-commit")
     args = parser.parse_args()
