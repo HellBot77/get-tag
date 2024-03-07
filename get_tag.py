@@ -94,7 +94,7 @@ def get_go_version(module: str) -> str:
 
 
 def _get_repository_branch(repository: str) -> tuple[str, str]:
-    if "#" not in repository:
+    if ":" not in repository:
         repository += ":"
     return tuple(repository.split(":", 1))  # type: ignore[return-value]
 
