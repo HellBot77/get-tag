@@ -11,10 +11,10 @@ import time
 import urllib.request
 
 _RETRIES = 3
-_SEP_GH_BASE = "@"
 _SEP_BRANCH = ":"
-_DEFAULT_GH_BASE = "https://api.github.com"
+_SEP_GH_BASE = "@"
 _DEFAULT_BRANCH = ""
+_DEFAULT_GH_BASE = "https://api.github.com"
 
 
 def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
@@ -75,9 +75,10 @@ def get_pip_version_3(package: str) -> str:
 def get_pip_version_4(package: str) -> str:
     subprocess.check_call(["pip", "install", "--upgrade", package])
     process = subprocess.run(["pip", "freeze"], capture_output=True, check=True)
+    startswith = f"{package}=="
     for frozen in process.stdout.decode().splitlines():
-        if frozen.startswith(f"{package}=="):
-            return frozen[11:]
+        if frozen.startswith(startswith):
+            return frozen[len(startswith) :]
     raise AssertionError
 
 
