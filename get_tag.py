@@ -3,6 +3,7 @@
 import argparse
 import http.client
 import json
+import os
 import re
 import subprocess
 import sys
@@ -198,12 +199,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("docker")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--pip")
-    group.add_argument("--go")
-    group.add_argument("--gh-commit")
-    group.add_argument("--gh-tag")
-    group.add_argument("--gh-release")
-    group.add_argument("--gl-commit")
+    group.add_argument("--pip", default=os.environ.get("TAG_PIP"))
+    group.add_argument("--go", default=os.environ.get("TAG_GO"))
+    group.add_argument("--gh-commit", default=os.environ.get("TAG_GH_COMMIT"))
+    group.add_argument("--gh-tag", default=os.environ.get("TAG_GH_TAG"))
+    group.add_argument("--gh-release", default=os.environ.get("TAG_GH_RELEASE"))
+    group.add_argument("--gl-commit", default=os.environ.get("TAG_GL_COMMIT"))
     args = parser.parse_args()
     tags = get_docker_versions(args.docker)
     if args.pip:
