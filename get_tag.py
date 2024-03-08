@@ -10,6 +10,10 @@ import time
 import urllib.request
 
 _RETRIES = 3
+_SEP_GH_BASE = "@"
+_SEP_BRANCH = ":"
+_DEFAULT_GH_BASE = "https://api.github.com"
+_DEFAULT_BRANCH = ""
 
 
 def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
@@ -80,7 +84,18 @@ def get_pip_version(package: str) -> str:
     return get_pip_version_2(package)
 
 
-def get_go_versions(module: str) -> list[str]:
+def get_go_versions_1(module: str) -> list[str]:
+    url = f"https://proxy.golang.org/{module}/@v/list"
+    response = _urlopen(url)
+    versions: list[dict[str, str]] = []
+    for version in response.read().decode().splitlines():
+        url_version = f"https://proxy.golang.org/{module}/@v/{version}.info"
+        response_version = _urlopen(url_version)
+        versions.append(json.loads(response_version.read()))
+    raise NotImplementedError
+
+
+def get_go_versions_2(module: str) -> list[str]:
     process = subprocess.run(
         ["go", "list", "-json", "-m", "-versions", module],
         capture_output=True,
@@ -89,26 +104,40 @@ def get_go_versions(module: str) -> list[str]:
     return json.loads(process.stdout)["Versions"]
 
 
+def get_go_versions(module: str) -> list[str]:
+    return get_go_versions_2(module)
+
+
+def get_go_version_1(module: str) -> str:
+    url = f"https://proxy.golang.org/{module}/@latest"
+    response = _urlopen(url)
+    return json.loads(response.read())["Version"]
+
+
+def get_go_version_2(module: str) -> str:
+    return get_go_versions_2(module)[-1]
+
+
 def get_go_version(module: str) -> str:
-    return get_go_versions(module)[-1]
+    return get_go_version_1(module)
 
 
 def _get_repository_branch(repository: str) -> tuple[str, str]:
-    if ":" not in repository:
-        repository += ":"
-    return tuple(repository.split(":", 1))  # type: ignore[return-value]
+    if _SEP_BRANCH not in repository:
+        repository += _SEP_BRANCH + _DEFAULT_BRANCH
+    return tuple(repository.split(_SEP_BRANCH, 1))  # type: ignore[return-value]
 
 
-def _get_gh_repository_base_url(repository: str) -> tuple[str, str]:
-    if "@" not in repository:
-        repository += "@https://api.github.com"
-    return tuple(repository.split("@", 1))  # type: ignore[return-value]
+def _get_gh_repository_base(repository: str) -> tuple[str, str]:
+    if _SEP_GH_BASE not in repository:
+        repository += _SEP_GH_BASE + _DEFAULT_GH_BASE
+    return tuple(repository.split(_SEP_GH_BASE, 1))  # type: ignore[return-value]
 
 
 def get_gh_commit_versions(repository: str) -> list[str]:
-    repository, base_url = _get_gh_repository_base_url(repository)
+    repository, base = _get_gh_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
-    url = f"{base_url}/repos/{repository}/commits?sha={branch}"
+    url = f"{base}/repos/{repository}/commits?sha={branch}"
     response = _urlopen(url)
     return [result["sha"] for result in reversed(json.loads(response.read()))]
 
@@ -118,8 +147,8 @@ def get_gh_commit_version(repository: str) -> str:
 
 
 def get_gh_tags_versions(repository: str) -> list[str]:
-    repository, base_url = _get_gh_repository_base_url(repository)
-    url = f"{base_url}/repos/{repository}/tags"
+    repository, base = _get_gh_repository_base(repository)
+    url = f"{base}/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
 
@@ -129,8 +158,8 @@ def get_gh_tag_version(repository: str) -> str:
 
 
 def get_gh_release_versions(repository: str) -> list[str]:
-    repository, base_url = _get_gh_repository_base_url(repository)
-    url = f"{base_url}/repos/{repository}/releases"
+    repository, base = _get_gh_repository_base(repository)
+    url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
     return [result["tag_name"] for result in reversed(json.loads(response.read()))]
 
