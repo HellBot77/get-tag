@@ -130,6 +130,11 @@ def _get_repository_branch(repository: str) -> tuple[str, str]:
     return tuple(repository.split(_SEP_BRANCH, 1))  # type: ignore[return-value]
 
 
+def _get_repository_path(repository: str) -> tuple[str, str]:
+    owner, repository, path = repository.split("/", 2)
+    return f"{owner}/{repository}", path
+
+
 def _get_gh_repository_base(repository: str) -> tuple[str, str]:
     if _SEP_GH_BASE not in repository:
         repository += _SEP_GH_BASE + _DEFAULT_GH_BASE
@@ -139,7 +144,8 @@ def _get_gh_repository_base(repository: str) -> tuple[str, str]:
 def get_gh_commit_versions(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
-    url = f"{base}/repos/{repository}/commits?sha={branch}"
+    repository, path = _get_repository_path(repository)
+    url = f"{base}/repos/{repository}/commits?sha={branch}&path={path}"
     response = _urlopen(url)
     return [result["sha"] for result in reversed(json.loads(response.read()))]
 
