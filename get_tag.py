@@ -131,6 +131,8 @@ def _get_repository_branch(repository: str) -> tuple[str, str]:
 
 
 def _get_repository_path(repository: str) -> tuple[str, str]:
+    if 1 == repository.count("/"):
+        repository += "/"
     owner, repository, path = repository.split("/", 2)
     return f"{owner}/{repository}", path
 
