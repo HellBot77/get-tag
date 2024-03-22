@@ -147,6 +147,7 @@ def get_gh_commits(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
     repository, path = _get_repository_path(repository)
+    print(f'repo={repository}')
     url = f"{base}/repos/{repository}/commits?sha={branch}&path={path}"
     response = _urlopen(url)
     return [result["sha"] for result in reversed(json.loads(response.read()))]
@@ -158,6 +159,7 @@ def get_gh_commit(repository: str) -> str:
 
 def get_gh_tags(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
+    print(f'repo={repository}')
     url = f"{base}/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
@@ -169,6 +171,7 @@ def get_gh_tag(repository: str) -> str:
 
 def get_gh_releases(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
+    print(f'repo={repository}')
     url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
     return [result["tag_name"] for result in reversed(json.loads(response.read()))]
