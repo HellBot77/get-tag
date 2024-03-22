@@ -143,7 +143,7 @@ def _get_gh_repository_base(repository: str) -> tuple[str, str]:
     return tuple(repository.split(_SEP_GH_BASE, 1))  # type: ignore[return-value]
 
 
-def get_gh_commit_versions(repository: str) -> list[str]:
+def get_gh_commits(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
     repository, path = _get_repository_path(repository)
@@ -152,30 +152,30 @@ def get_gh_commit_versions(repository: str) -> list[str]:
     return [result["sha"] for result in reversed(json.loads(response.read()))]
 
 
-def get_gh_commit_version(repository: str) -> str:
-    return get_gh_commit_versions(repository)[-1]
+def get_gh_commit(repository: str) -> str:
+    return get_gh_commits(repository)[-1]
 
 
-def get_gh_tags_versions(repository: str) -> list[str]:
+def get_gh_tags(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     url = f"{base}/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
 
 
-def get_gh_tag_version(repository: str) -> str:
-    return get_gh_tags_versions(repository)[-1]
+def get_gh_tag(repository: str) -> str:
+    return get_gh_tags(repository)[-1]
 
 
-def get_gh_release_versions(repository: str) -> list[str]:
+def get_gh_releases(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
     return [result["tag_name"] for result in reversed(json.loads(response.read()))]
 
 
-def get_gh_release_version(repository: str) -> str:
-    return get_gh_release_versions(repository)[-1]
+def get_gh_release(repository: str) -> str:
+    return get_gh_releases(repository)[-1]
 
 
 def _get_gl_repository(repository: str) -> int:
@@ -187,18 +187,18 @@ def _get_gl_repository(repository: str) -> int:
         return json.loads(response.read())["id"]
 
 
-def get_gl_commit_versions(repository: str) -> list[str]:
+def get_gl_commits(repository: str) -> list[str]:
     repository, branch = _get_repository_branch(repository)
     url = f"https://gitlab.com/api/v4/projects/{_get_gl_repository(repository)}/repository/commits?ref_name={branch}"
     response = _urlopen(url)
     return [result["id"] for result in reversed(json.loads(response.read()))]
 
 
-def get_gl_commit_version(repository: str) -> str:
-    return get_gl_commit_versions(repository)[-1]
+def get_gl_commit(repository: str) -> str:
+    return get_gl_commits(repository)[-1]
 
 
-def get_docker_versions(repository: str) -> list[str]:
+def get_docker_tags(repository: str) -> list[str]:
     url = f"https://hub.docker.com/v2/repositories/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in json.loads(response.read())["results"]]
@@ -206,7 +206,7 @@ def get_docker_versions(repository: str) -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("docker")
+    parser.add_argument("docker-tag", default=os.environ.get("TAG_DOCKER"))
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pip", default=os.environ.get("TAG_PIP"))
     group.add_argument("--go", default=os.environ.get("TAG_GO"))
@@ -215,19 +215,19 @@ def main():
     group.add_argument("--gh-release", default=os.environ.get("TAG_GH_RELEASE"))
     group.add_argument("--gl-commit", default=os.environ.get("TAG_GL_COMMIT"))
     args = parser.parse_args()
-    tags = get_docker_versions(args.docker)
+    tags = get_docker_tags(args.docker_tag)
     if args.pip:
         tag = get_pip_version(args.pip)
     elif args.go:
         tag = get_go_version(args.go)
     elif args.gh_commit:
-        tag = get_gh_commit_version(args.gh_commit)
+        tag = get_gh_commit(args.gh_commit)
     elif args.gh_tag:
-        tag = get_gh_tag_version(args.gh_tag)
+        tag = get_gh_tag(args.gh_tag)
     elif args.gh_release:
-        tag = get_gh_release_version(args.gh_release)
+        tag = get_gh_release(args.gh_release)
     elif args.gl_commit:
-        tag = get_gl_commit_version(args.gl_commit)
+        tag = get_gl_commit(args.gl_commit)
     else:
         raise NotImplementedError
     if tag not in tags:
