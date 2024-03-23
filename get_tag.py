@@ -12,9 +12,10 @@ import urllib.request
 
 _RETRIES = 3
 _SEP_BRANCH = ":"
-_SEP_GH_BASE = "@"
+_SEP_BASE = "@"
 _DEFAULT_BRANCH = ""
 _DEFAULT_GH_BASE = "https://api.github.com"
+_DEFAULT_GL_BASE = "https://gitlab.com"
 
 
 def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
@@ -124,6 +125,12 @@ def get_go_version(module: str) -> str:
     return get_go_version_1(module)
 
 
+def _get_repository_base(repository: str, default_base: str) -> tuple[str, str]:
+    if _SEP_BASE not in repository:
+        repository += _SEP_BASE + default_base
+    return tuple(repository.split(_SEP_BASE, 1))  # type: ignore[return-value]
+
+
 def _get_repository_branch(repository: str) -> tuple[str, str]:
     if _SEP_BRANCH not in repository:
         repository += _SEP_BRANCH + _DEFAULT_BRANCH
@@ -138,16 +145,14 @@ def _get_repository_path(repository: str) -> tuple[str, str]:
 
 
 def _get_gh_repository_base(repository: str) -> tuple[str, str]:
-    if _SEP_GH_BASE not in repository:
-        repository += _SEP_GH_BASE + _DEFAULT_GH_BASE
-    return tuple(repository.split(_SEP_GH_BASE, 1))  # type: ignore[return-value]
+    return _get_repository_base(repository, _DEFAULT_GH_BASE)
 
 
 def get_gh_commits(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
     repository, path = _get_repository_path(repository)
-    print(f'repo={repository}')
+    print(f"repo={repository}")
     url = f"{base}/repos/{repository}/commits?sha={branch}&path={path}"
     response = _urlopen(url)
     return [result["sha"] for result in reversed(json.loads(response.read()))]
@@ -159,7 +164,7 @@ def get_gh_commit(repository: str) -> str:
 
 def get_gh_tags(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
-    print(f'repo={repository}')
+    print(f"repo={repository}")
     url = f"{base}/repos/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
@@ -171,7 +176,7 @@ def get_gh_tag(repository: str) -> str:
 
 def get_gh_releases(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
-    print(f'repo={repository}')
+    print(f"repo={repository}")
     url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
     return [result["tag_name"] for result in reversed(json.loads(response.read()))]
@@ -181,18 +186,23 @@ def get_gh_release(repository: str) -> str:
     return get_gh_releases(repository)[-1]
 
 
-def _get_gl_repository(repository: str) -> int:
+def _get_gl_repository_base(repository: str) -> tuple[str, str]:
+    return _get_repository_base(repository, _DEFAULT_GL_BASE)
+
+
+def _get_gl_repository(repository: str, base: str) -> int:
     if repository.isdigit():
         return int(repository)
     else:
-        url = f"https://gitlab.com/api/v4/projects/{repository.replace('/', '%2F', 1)}"
+        url = f"{base}/api/v4/projects/{repository.replace('/', '%2F', 1)}"
         response = _urlopen(url)
         return json.loads(response.read())["id"]
 
 
 def get_gl_commits(repository: str) -> list[str]:
+    repository, base = _get_gl_repository_base(repository)
     repository, branch = _get_repository_branch(repository)
-    url = f"https://gitlab.com/api/v4/projects/{_get_gl_repository(repository)}/repository/commits?ref_name={branch}"
+    url = f"{base}/api/v4/projects/{_get_gl_repository(repository, base)}/repository/commits?ref_name={branch}"
     response = _urlopen(url)
     return [result["id"] for result in reversed(json.loads(response.read()))]
 
