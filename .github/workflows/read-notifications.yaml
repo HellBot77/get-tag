@@ -17,7 +17,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /notifications | \
-          jq -r '.[] | select(.subject.title | contains("workflow run cancelled")) | .id' | \
+          jq -r '.[] | select(.subject.title | contains("workflow run cancelled") or match("Attempt #\\d+ cancelled")) | .id' | \
           while read id; do
           echo "Reading notification: $id"
           gh api \
