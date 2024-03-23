@@ -209,7 +209,7 @@ def get_docker_tags(repository: str) -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("docker-tag", default=os.environ.get("TAG_DOCKER"))
+    parser.add_argument("docker_tag", default=os.environ.get("TAG_DOCKER"))
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pip", default=os.environ.get("TAG_PIP"))
     group.add_argument("--go", default=os.environ.get("TAG_GO"))
