@@ -45,8 +45,12 @@ def get_pip_versions_2(package: str) -> list[str]:
     url = f"https://pypi.org/pypi/{package}/json"
     response = _urlopen(url)
     releases = json.loads(response.read())["releases"]
+    versions = filter(
+        lambda release: (release := releases[release]) and not release[0]["yanked"],
+        releases,
+    )
     return sorted(
-        releases, key=lambda release: releases[release][0]["upload_time_iso_8601"]
+        versions, key=lambda release: releases[release][0]["upload_time_iso_8601"]
     )
 
 
