@@ -1,0 +1,21 @@
+name: Enable Docker Image Workflows
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+jobs:
+  enable-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable workflows
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_ENABLE_WORKFLOWS }}
+        run: |
+          gh repo list --json nameWithOwner --limit 1000 --no-archived --visibility public | \
+          jq -r '.[] | .nameWithOwner' | \
+          while read repo; do
+            echo "Enabling workflow: $repo"
+            gh workflow enable docker-image.yml --repo $repo
+          done
