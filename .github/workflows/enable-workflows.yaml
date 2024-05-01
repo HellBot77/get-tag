@@ -1,4 +1,4 @@
-name: Enable Docker Image Workflows
+name: Enable Enabled Workflows
 
 on:
   schedule:
@@ -16,6 +16,10 @@ jobs:
           gh repo list --json nameWithOwner --limit 1000 --no-archived --visibility public | \
           jq -r '.[] | .nameWithOwner' | \
           while read repo; do
-            echo "Enabling workflow: $repo"
-            gh workflow enable docker-image.yml --repo $repo
+            gh workflow list --json id,state --repo $repo | \
+            jq -r '.[] | select(.state == "active") | .id' | \
+            while read id; do
+              echo "Enabling workflow: $repo $id"
+              gh workflow enable $id --repo $repo || true
+            done
           done
