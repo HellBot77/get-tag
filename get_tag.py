@@ -214,9 +214,7 @@ def get_gl_commit(repository: str) -> str:
 
 def get_gl_tags(repository: str) -> list[str]:
     repository, base = _get_gl_repository_base(repository)
-    url = (
-        f"{base}/api/v4/projects/{_get_gl_repository(repository, base)}/repository/tags"
-    )
+    url = f"{base}/api/v4/projects/{_get_gl_repository(repository, base)}/repository/tags?order_by=version"
     response = _urlopen(url)
     return [result["name"] for result in reversed(json.loads(response.read()))]
 
