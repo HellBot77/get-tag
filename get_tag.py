@@ -212,6 +212,19 @@ def get_gl_commit(repository: str) -> str:
     return get_gl_commits(repository)[-1]
 
 
+def get_gl_tags(repository: str) -> list[str]:
+    repository, base = _get_gl_repository_base(repository)
+    url = (
+        f"{base}/api/v4/projects/{_get_gl_repository(repository, base)}/repository/tags"
+    )
+    response = _urlopen(url)
+    return [result["name"] for result in reversed(json.loads(response.read()))]
+
+
+def get_gl_tag(repository: str) -> str:
+    return get_gl_tags(repository)[-1]
+
+
 def get_docker_tags(repository: str) -> list[str]:
     url = f"https://hub.docker.com/v2/repositories/{repository}/tags"
     response = _urlopen(url)
@@ -228,6 +241,7 @@ def main():
     group.add_argument("--gh-tag", default=os.environ.get("TAG_GH_TAG"))
     group.add_argument("--gh-release", default=os.environ.get("TAG_GH_RELEASE"))
     group.add_argument("--gl-commit", default=os.environ.get("TAG_GL_COMMIT"))
+    group.add_argument("--gl-tag", default=os.environ.get("TAG_GL_TAG"))
     args = parser.parse_args()
     tags = get_docker_tags(args.docker_tag)
     if args.pip:
@@ -242,6 +256,8 @@ def main():
         tag = get_gh_release(args.gh_release)
     elif args.gl_commit:
         tag = get_gl_commit(args.gl_commit)
+    elif args.gl_tag:
+        tag = get_gl_tag(args.gl_tag)
     else:
         raise NotImplementedError
     if tag not in tags:
