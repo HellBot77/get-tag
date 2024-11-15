@@ -91,17 +91,45 @@ def get_pip_version(package: str) -> str:
     return get_pip_version_2(package)
 
 
-def get_npm_versions(package: str) -> list[str]:
+def get_npm_versions_1(package: str) -> list[str]:
     url = f"https://registry.npmjs.org/{package}"
     response = _urlopen(url)
     versions = json.loads(response.read())["versions"]
     return list(versions.keys())
 
 
-def get_npm_version(package: str) -> str:
+def get_npm_versions_2(package: str) -> list[str]:
+    process = subprocess.run(
+        ["npm", "show", package, "versions", "--json"],
+        shell=True,
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(process.stdout)
+
+
+def get_npm_versions(package: str) -> list[str]:
+    return get_npm_versions_1(package)
+
+
+def get_npm_version_1(package: str) -> str:
     url = f"https://registry.npmjs.org/{package}"
     response = _urlopen(url)
     return json.loads(response.read())["dist-tags"]["latest"]
+
+
+def get_npm_version_2(package: str) -> str:
+    process = subprocess.run(
+        ["npm", "show", package, "version"],
+        shell=True,
+        capture_output=True,
+        check=True,
+    )
+    return process.stdout.decode().strip()
+
+
+def get_npm_version(package: str) -> str:
+    return get_npm_version_1(package)
 
 
 def get_go_versions_1(module: str) -> list[str]:
