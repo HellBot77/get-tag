@@ -91,6 +91,19 @@ def get_pip_version(package: str) -> str:
     return get_pip_version_2(package)
 
 
+def get_npm_versions(package: str) -> list[str]:
+    url = f"https://registry.npmjs.org/{package}"
+    response = _urlopen(url)
+    versions = json.loads(response.read())["versions"]
+    return list(versions.keys())
+
+
+def get_npm_version(package: str) -> str:
+    url = f"https://registry.npmjs.org/{package}"
+    response = _urlopen(url)
+    return json.loads(response.read())["dist-tags"]["latest"]
+
+
 def get_go_versions_1(module: str) -> list[str]:
     url = f"https://proxy.golang.org/{module}/@v/list"
     response = _urlopen(url)
@@ -234,6 +247,7 @@ def main():
     parser.add_argument("docker_tag", default=os.environ.get("TAG_DOCKER"))
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pip", default=os.environ.get("TAG_PIP"))
+    group.add_argument("--npm", default=os.environ.get("TAG_NPM"))
     group.add_argument("--go", default=os.environ.get("TAG_GO"))
     group.add_argument("--gh-commit", default=os.environ.get("TAG_GH_COMMIT"))
     group.add_argument("--gh-tag", default=os.environ.get("TAG_GH_TAG"))
@@ -244,6 +258,8 @@ def main():
     tags = get_docker_tags(args.docker_tag)
     if args.pip:
         tag = get_pip_version(args.pip)
+    elif args.npm:
+        tag = get_npm_version(args.npm)
     elif args.go:
         tag = get_go_version(args.go)
     elif args.gh_commit:
