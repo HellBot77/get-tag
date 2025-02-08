@@ -25,7 +25,7 @@ def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
         response = urllib.request.urlopen(url)
         assert 200 == response.status
         return response
-    except BaseException:
+    except Exception:
         if __retries:
             sleep = 30 * (_RETRIES - __retries + 1)
             print(f"{sleep=}", file=sys.stderr)
