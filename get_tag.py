@@ -221,7 +221,11 @@ def get_gh_releases(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
-    return [result["tag_name"] for result in reversed(json.loads(response.read()))]
+    return [
+        result["tag_name"]
+        for result in reversed(json.loads(response.read()))
+        if not result["draft"] and not result["prerelease"]
+    ]
 
 
 def get_gh_release(repository: str) -> str:
