@@ -269,6 +269,8 @@ def get_gl_tag(repository: str) -> str:
 
 
 def get_docker_tags(repository: str) -> list[str]:
+    if repository == "":
+        return []
     url = f"https://hub.docker.com/v2/repositories/{repository}/tags"
     response = _urlopen(url)
     return [result["name"] for result in json.loads(response.read())["results"]]
