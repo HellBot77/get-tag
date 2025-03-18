@@ -217,7 +217,7 @@ def get_gh_tag(repository: str) -> str:
     return get_gh_tags(repository)[-1]
 
 
-def get_gh_releases(repository: str) -> list[str]:
+def get_gh_releases_1(repository: str) -> list[str]:
     repository, base = _get_gh_repository_base(repository)
     url = f"{base}/repos/{repository}/releases"
     response = _urlopen(url)
@@ -228,8 +228,19 @@ def get_gh_releases(repository: str) -> list[str]:
     ]
 
 
+def get_gh_release_1(repository: str) -> str:
+    return get_gh_releases_1(repository)[-1]
+
+
+def get_gh_release_2(repository: str) -> str:
+    repository, base = _get_gh_repository_base(repository)
+    url = f"{base}/repos/{repository}/releases/latest"
+    response = _urlopen(url)
+    return json.loads(response.read())["tag_name"]
+
+
 def get_gh_release(repository: str) -> str:
-    return get_gh_releases(repository)[-1]
+    return get_gh_release_2(repository)
 
 
 def _get_gl_repository_base(repository: str) -> tuple[str, str]:
