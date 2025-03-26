@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import datetime
 import http.client
 import json
 import os
@@ -16,6 +17,14 @@ _SEP_BASE = "@"
 _DEFAULT_BRANCH = ""
 _DEFAULT_GH_BASE = "https://api.github.com"
 _DEFAULT_GL_BASE = "https://gitlab.com"
+_CR_COICES = {
+    "hourly": "%Y-%m-%dT%H",
+    "daily": "%Y-%m-%d",
+    "weekly": "%Y-W%V",
+    "monthly": "%Y-%m",
+    "yearly": "%Y",
+}
+_CR_COICES["annually"] = _CR_COICES["yearly"]
 
 
 def _urlopen(url: str, __retries: int = _RETRIES) -> http.client.HTTPResponse:
@@ -279,6 +288,11 @@ def get_gl_tag(repository: str) -> str:
     return get_gl_tags(repository)[-1]
 
 
+def get_cron_tag(cron: str) -> str:
+    timestamp = datetime.datetime.now(datetime.UTC)
+    return timestamp.strftime(_CR_COICES[cron])
+
+
 def get_docker_tags(repository: str) -> list[str]:
     if repository == "":
         return []
@@ -299,6 +313,7 @@ def main():
     group.add_argument("--gh-release", default=os.environ.get("TAG_GH_RELEASE"))
     group.add_argument("--gl-commit", default=os.environ.get("TAG_GL_COMMIT"))
     group.add_argument("--gl-tag", default=os.environ.get("TAG_GL_TAG"))
+    group.add_argument("--cr", default=os.environ.get("TAG_CR"), choices=_CR_COICES)
     args = parser.parse_args()
     tags = get_docker_tags(args.docker_tag)
     if args.pip:
@@ -317,6 +332,8 @@ def main():
         tag = get_gl_commit(args.gl_commit)
     elif args.gl_tag:
         tag = get_gl_tag(args.gl_tag)
+    elif args.cr:
+        tag = get_cron_tag(args.cr)
     else:
         raise NotImplementedError
     if tag not in tags:
