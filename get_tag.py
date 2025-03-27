@@ -252,6 +252,17 @@ def get_gh_release(repository: str) -> str:
     return get_gh_release_2(repository)
 
 
+def get_gh_deployments(repository: str) -> list[str]:
+    repository, base = _get_gh_repository_base(repository)
+    url = f"{base}/repos/{repository}/deployments"
+    response = _urlopen(url)
+    return [result["sha"] for result in reversed(json.loads(response.read()))]
+
+
+def get_gh_deployment(repository: str) -> str:
+    return get_gh_deployments(repository)[-1]
+
+
 def _get_gl_repository_base(repository: str) -> tuple[str, str]:
     return _get_repository_base(repository, _DEFAULT_GL_BASE)
 
@@ -311,6 +322,7 @@ def main():
     group.add_argument("--gh-commit", default=os.environ.get("TAG_GH_COMMIT"))
     group.add_argument("--gh-tag", default=os.environ.get("TAG_GH_TAG"))
     group.add_argument("--gh-release", default=os.environ.get("TAG_GH_RELEASE"))
+    group.add_argument("--gh-deployment", default=os.environ.get("TAG_GH_DEPLOYMENT"))
     group.add_argument("--gl-commit", default=os.environ.get("TAG_GL_COMMIT"))
     group.add_argument("--gl-tag", default=os.environ.get("TAG_GL_TAG"))
     group.add_argument("--cr", default=os.environ.get("TAG_CR"), choices=_CR_COICES)
@@ -328,6 +340,8 @@ def main():
         tag = get_gh_tag(args.gh_tag)
     elif args.gh_release:
         tag = get_gh_release(args.gh_release)
+    elif args.gh_deployment:
+        tag = get_gh_deployment(args.gh_deployment)
     elif args.gl_commit:
         tag = get_gl_commit(args.gl_commit)
     elif args.gl_tag:
